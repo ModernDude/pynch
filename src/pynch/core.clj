@@ -23,6 +23,15 @@
 
 
 
+(defn now []
+  (let [d (tm/now)
+        remove-secs (fn [d] (->> d tm/sec tm/secs (tm/minus d)))
+        remove-milli (fn [d] (->> d tm/milli tm/millis (tm/minus d)))]
+    (-> d remove-secs remove-milli)))
+ 
+
+
+
 (defn hn-time-to-dt [s]
  "Takes a string of the form 'x y ago' where x is an integral
  value and y indicates a period. For example, a string could
@@ -36,8 +45,8 @@
        create-period-fn (fn [p] (->> (str "clj-time.core/" p "s")
 symbol resolve))]
    (if-let [found-period (some first-found periods)]
-     (tm/minus (tm/now) ((create-period-fn found-period)  offset))
-     (tm/now))))
+     (tm/minus (now) ((create-period-fn found-period)  offset))
+     (now))))
 
 
 (defn- get-next-page-uri [ns uri]
@@ -65,21 +74,21 @@ symbol resolve))]
     :title (html/text title)
     :submission-url (-> title :attrs :href)
     :submission-time (hn-time-to-dt sub-time)
-    :points (-> points html/text (re-first-seq-digits 0))
+    :points (-> point html/text (re-first-seq-digits 0))
     :user (html/text user)
     :comments-url (-> com-link :attrs :href)
     :comments-count (-> com-link html/text (re-first-seq-digits 0) )})
        ordinals titles points users com-links sub-times)))
 
 
-(defmulti get-submissions class)
+(defn get-subs [x]
+  "Returns a map of all submissions located at or within
+   resource x. The type of x can be any of the following
+   String, java.io.FileInputStream, java.io.Reader,
+   java.io.InputStream, java.net.URL, java.net.URI"
+ (-> x html/html-resource get-submissions-map first))
 
-(defmethod get-submissions String [s]
-  "Loads the html string s represnting a hacker news list
-   of articles and returns  sequence of mapped data."
- (-> s html/html-snippet get-submissions-map))
-
-(defmethod get-submissions java.net.URI [uri]
+(defn get-submissions-follow [uri]
   "Loads the hacker news submission list given by the resource
    uri and returns a lazy list representing the parsed data."
  (lazy-seq
@@ -88,7 +97,7 @@ symbol resolve))]
     (concat
      (flatten
       (get-submissions-map ns))
-     (get-submissions next-uri)))))
+     (get-submissions-follow next-uri)))))
 
 
 (defn- get-comment-paragraphs [ns]

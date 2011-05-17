@@ -4,44 +4,58 @@
   (:require [clj-time.core :as dt])
   (:use [clojure.java.io :as io]))
 
+
+(def sub-1
+  (make-sub
+   1 "Why Geeks Should Love HP WebOS"
+   "http://developer.palm.com/blog/2011/05/10-reasons-for-geeks-to-love-hp-webos/"
+   (hn-time-to-dt "3 hours ago") 118 "unwiredben" "item?id=2538655" 49))
+
+(def sub-14
+  (make-sub
+   14 "Google: Go ahead and hack the Chrome Book"
+   "http://techcrunch.com/2011/05/11/hack-chromebooks"
+   (hn-time-to-dt "6 hours ago") 57 "MatthewB" "item?id=2537994" 0))
+
+(def sub-30
+  (make-sub
+   30 "Finally, Google Tasks API"
+   "https://code.google.com/apis/tasks/index.html"
+   (hn-time-to-dt "6 hours ago") 32 "toomanymike" "item?id=2538023" 4))
+
+(def sub-31
+  (make-sub
+   31 "The False Choice Between Babies And Startups"
+   "http://blogs.forbes.com/85broads/2011/05/16/the-false-choice-between-babies-and-startups/"
+   (hn-time-to-dt "12 hours ago") 46 "jemeshsu" "item?id=2554807" 30))
+
+(def sub-60
+  (make-sub
+   60 "Exploring Lisp Libraries - and building a webapp on the way"
+   "https://sites.google.com/site/sabraonthehill/home/exploring-quicklisp-packages"
+   (hn-time-to-dt "1 day ago") 69 "mahmud" "item?id=2552163" 3))
+
 (deftest test-get-subs
-  (let [c (-> "resources/submissions.html" io/resource get-subs)]
-    (testing "Count"
-      (is (= 30 (count c ))) )
+  (let [subs (-> "resources/submissions.html" io/resource get-subs)]
+    (testing "Count is 30"
+      (is (= 30 (count subs ))) )
     (testing "First Submission"
-      (let [sub (first c)]
-        (is (= 1 (:ordinal sub)))
-        (is (= "Why Geeks Should Love HP WebOS" (:title sub)))
-        (is (= "http://developer.palm.com/blog/2011/05/10-reasons-for-geeks-to-love-hp-webos/"
-               (:submission-url sub)))
-        (is (= (hn-time-to-dt "3 hours ago") (:submission-time sub)))
-        (is (= 118 (:points sub)))
-        (is (= "unwiredben" (:user sub)))
-        (is (= "item?id=2538655" (:comments-url sub)))
-        (is (= 49 (:comments-count sub)))))
-    (testing "Submission with no points and no comments"
-      (let [sub (nth c 14)]
-        (is (= 15 (:ordinal sub)))
-        (is (= "Facebook reportedly disables account of attorney Mark S. Zuckerberg"
-               (:title sub)))
-        (is (= "http://latimesblogs.latimes.com/technology/2011/05/facebook-disables-account-of-attorney-named-mark-zuckerberg.html"
-               (:submission-url sub)))
-        (is (= (hn-time-to-dt "4 hours ago") (:submission-time sub)))
-        (is (= 0 (:points sub)))
-        (is (= "ssclafani" (:user sub)))
-        (is (= "item?id=2538477" (:comments-url sub)))
-        (is (= 0 (:comments-count sub)))))
-    (testing "Last Submission"
-      (let [sub (last c)]
-        (is (= 30 (:ordinal sub)))
-        (is (= "Finally, Google Tasks API", (:title sub)))
-        (is (= "https://code.google.com/apis/tasks/index.html"
-               (:submission-url sub)))
-        (is (= (hn-time-to-dt "6 hours ago") (:submission-time sub)))
-        (is (= 32 (:points sub)))
-        (is (= "toomanymike" (:user sub)))
-        (is (= "item?id=2538023"))
-        (is (= 4 (:comments-count sub)))))))
+      (is (= sub-1 (first subs))))
+    (testing "Fourteenth Submission"
+      (is (= sub-14 (nth subs 13))))
+    (testing "Thirtieth Submission"
+      (is (= sub-30 (last subs))))))
+
+(deftest test-get-subs-follow
+  (let [subs (->> "resources/submissions.html" io/resource get-subs-follow (take 60))]
+    (testing "Count is 60"
+      (is (= 60 (count subs))))
+    (testing "First Submission"
+      (is (= sub-1 (first subs))))
+    (testing "Thirty-First Submission"
+      (is (= sub-31 (nth subs 30))))
+    (testing "Sixtieth Submission"
+      (is (= sub-60 (nth subs 59))))))
 
 (deftest test-re-first-seq-digits
   (testing "Number Exist"
@@ -97,4 +111,5 @@
       (is (dates-same? ((now-minus) (dt/minutes 4)) (hn-time-to-dt "4 minute ago")))))
   (testing "Time Period Not Specified"
     (is (dates-same? (dt/now) (hn-time-to-dt "")))))
+
 

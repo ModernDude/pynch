@@ -7,7 +7,7 @@
 
 
 (def *hn-url* "http://news.ycombinator.com/")
-(def *crawl-delay* 0);30000)
+(def *crawl-delay* 30000)
 
 (defn to-int [s]
  (Integer/parseInt s))
@@ -30,10 +30,6 @@
 
 (defn- extract-time [node]
   (hn-time-to-dt node))
-
-
-;(defn- select-href [ns sel-key]
-;  (->> sel-key selectors (select ns) first :attrs :href)) 
 
 
 (defn re-first-seq-digits
@@ -85,7 +81,7 @@
 (defn- get-next-page-uri [res more-link]
   "Find the next absolute uri based on the given uri and the
    more link found in ns."
-  (Thread/sleep *crawl-delay*)
+ 
   (let [new-res (get-res-uri res)]
     (if (= "file" (.getScheme new-res))
       (.resolve new-res (str/replace more-link #"^/" ""))
@@ -138,7 +134,9 @@
         next-uri (get-next-page-uri res more-url)]
     (concat
      (get-subs-map ns)
-     (get-subs-follow next-uri)))))
+     (do
+       (Thread/sleep *crawl-delay*)
+       (get-subs-follow next-uri))))))
 
 
 (defn- get-comment-paragraphs [ns]

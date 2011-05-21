@@ -35,6 +35,11 @@
    "https://sites.google.com/site/sabraonthehill/home/exploring-quicklisp-packages"
    (hn-time-to-dt "1 day ago") 69 "mahmud" "item?id=2552163" 3))
 
+(defn static-now []
+  "Function to return a static date that can be used for testing"
+  (println "static here")
+  (dt/date-time 2011 05 20))
+
 (deftest test-get-subs
   (let [subs (-> "resources/submissions.html" io/resource get-subs)]
     (is (= 30 (count subs )) "Count Should Be 30")
@@ -44,10 +49,13 @@
 
 (deftest test-get-subs-follow
   (let [subs (->> "resources/submissions.html" io/resource get-subs-follow (take 60))]
-    (is (= 60 (count subs)) "Count should be 60")
-    (is (= sub-1 (first subs)) "First Submission")
-    (is (= sub-31 (nth subs 30))"Thirty-First Submission")
-    (is (= sub-60 (nth subs 59)) "Sixtieth Submission")))
+    (binding [pynch.core/*crawl-delay* 0
+              pynch.core/now static-now]
+      (is (= 60 (count subs)) "Count should be 60")
+      (is (= sub-1 (first subs)) "First Submission")
+      (is (= sub-31 (nth subs 30))"Thirty-First Submission")
+      (is (= sub-60 (nth subs 59)) "Sixtieth Submission")
+      (println pynch.core/*crawl-delay*))))
 
 (deftest test-re-first-seq-digits
   (testing "Number Exist"

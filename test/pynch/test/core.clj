@@ -37,25 +37,17 @@
 
 (deftest test-get-subs
   (let [subs (-> "resources/submissions.html" io/resource get-subs)]
-    (testing "Count is 30"
-      (is (= 30 (count subs ))) )
-    (testing "First Submission"
-      (is (= sub-1 (first subs))))
-    (testing "Fourteenth Submission"
-      (is (= sub-14 (nth subs 13))))
-    (testing "Thirtieth Submission"
-      (is (= sub-30 (last subs))))))
+    (is (= 30 (count subs )) "Count Should Be 30")
+    (is (= sub-1 (first subs)) "First Submission" )
+    (is (= sub-14 (nth subs 13)) "Fourteenth Submission")
+    (is (= sub-30 (last subs)) "Thirtieth Submission")))
 
 (deftest test-get-subs-follow
   (let [subs (->> "resources/submissions.html" io/resource get-subs-follow (take 60))]
-    (testing "Count is 60"
-      (is (= 60 (count subs))))
-    (testing "First Submission"
-      (is (= sub-1 (first subs))))
-    (testing "Thirty-First Submission"
-      (is (= sub-31 (nth subs 30))))
-    (testing "Sixtieth Submission"
-      (is (= sub-60 (nth subs 59))))))
+    (is (= 60 (count subs)) "Count should be 60")
+    (is (= sub-1 (first subs)) "First Submission")
+    (is (= sub-31 (nth subs 30))"Thirty-First Submission")
+    (is (= sub-60 (nth subs 59)) "Sixtieth Submission")))
 
 (deftest test-re-first-seq-digits
   (testing "Number Exist"

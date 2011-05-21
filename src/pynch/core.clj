@@ -12,6 +12,29 @@
 (defn to-int [s]
  (Integer/parseInt s))
 
+(def selectors
+  {:sub-more-url [:td.title [:a (attr-starts :href "/x?fnid")]]
+   :sub-ordinals [[:.title (has [(re-pred #"^[0-9]+\.{1}$")])]]
+   :sub-titles [:.title :a]
+   :sub-points [:td.subtext [:span (attr-starts :id "score_")]]
+   :sub-users [:td.subtext [:a (attr-starts :href "user?")]]
+   :sub-com-urls [:td.subtext [:a (attr-starts :href "item?")]]
+   :sub-times [:td.subtext [text-node (text-pred #(re-find #"ago\s*\|" %))]]
+   })
+
+(defn- extract-num [node]
+  (-> node text (re-first-seq-digits 0)))
+
+(defn- extract-href [node]
+  (-> node :attrs :href))
+
+(defn- extract-time [node]
+  (hn-time-to-dt node))
+
+
+;(defn- select-href [ns sel-key]
+;  (->> sel-key selectors (select ns) first :attrs :href)) 
+
 
 (defn re-first-seq-digits
  "Uses regex to find the first sequential string of digits in
@@ -45,8 +68,7 @@
        periods ["minute", "hour", "day", "week", "month", "year"]
        period-found? (fn [p] (string? (re-find (re-pattern p) s)))
        first-found (fn [p] (if (period-found? p) p nil))
-       create-period-fn (fn [p] (->> (str "clj-time.core/" p "s")
-symbol resolve))]
+       create-period-fn (fn [p] (->> (str "clj-time.core/" p "s") symbol resolve))]
    (if-let [found-period (some first-found periods)]
      (tm/minus (now) ((create-period-fn found-period)  offset))
      (now))))
@@ -55,16 +77,10 @@ symbol resolve))]
 (defmulti get-res-uri class)
 (defmethod get-res-uri :default [res] (java.net.URI. *hn-url*))
 (defmethod get-res-uri java.net.URI [res] res)
-(defmethod get-res-uri java.net.URL [res]
-  (println "Convert to uri")
-  (flush)
-  (.toURI res))
+(defmethod get-res-uri java.net.URL [res] (.toURI res))
   
 
 
-(defn- get-more-link [ns]
-  (-> (select ns [:td.title [:a (attr-starts :href "/x?fnid")]])
-      first :attrs :href))
 
 (defn- get-next-page-uri [res more-link]
   "Find the next absolute uri based on the given uri and the
@@ -77,36 +93,6 @@ symbol resolve))]
 
 
 
-
-
-(def extractors
-  {:sub-ordinals
-   {:selector [[:.title (has [(re-pred #"^[0-9]+\.{1}$")])]]
-    :transforms {:ordinal #(-> % text (re-first-seq-digits 0))}}
-   :sub-titles
-   {:selector [:.title :a]
-    :transforms {:title #(text %)
-                :sub-url #(-> % :attrs :href)}}
-   :sub-points
-   {:selector [:td.subtext [:span (attr-starts :id "score_")]]
-    :transforms {:points #(-> % text (re-first-seq-digits 0))}}
-   :sub-users
-   {:selector [:td.subtext [:a (attr-starts :href "user?")]]
-    :transforms {:user #(text %)}}
-   :sub-com-urls
-   {:selector [:td.subtext [:a (attr-starts :href "item?")]]
-    :transforms {:com-url #(-> % :attrs :href)
-                 :com-count #(-> % text (re-first-seq-digits 0))}}
-   :sub-times
-   {:selector [:td.subtext [text-node (text-pred #(re-find #"ago\s*\|" %))]]
-    :transforms {:time #(hn-time-to-dt %)}}})
-
-
-(defn- extract-seq [r extractor transform]
-  ""
-  (let [ext (-> extractors extractor)]
-    (map (-> ext :transforms transform)
-       (select r (-> ext :selector)))))
 
 
 (defn make-sub [ord title sub-url sub-time points
@@ -123,17 +109,19 @@ symbol resolve))]
 
 (defn- get-subs-map [ns]
   "Get a sequext of maps for each submission found in ns."
-  (map #(make-sub %1 %2 %3 %4 %5 %6 %7 %8)
-       (extract-seq ns :sub-ordinals :ordinal)
-       (extract-seq ns :sub-titles :title)
-       (extract-seq ns :sub-titles :sub-url)
-       (extract-seq ns :sub-times :time)
-       (extract-seq ns :sub-points :points)
-       (extract-seq ns :sub-users :user)
-       (extract-seq ns :sub-com-urls :com-url)
-       (extract-seq ns :sub-com-urls :com-count)))
-
-
+  (first
+   (let-select
+    ns [ordinals (:sub-ordinals selectors)
+        titles (:sub-titles selectors)
+        times (:sub-times selectors)
+        points (:sub-points selectors)
+        users (:sub-users selectors)
+        comments (:sub-com-urls selectors)]
+    (map #(make-sub
+           (extract-num %1) (text %2) (extract-href %2) (extract-time %3)
+           (extract-num %4) (text %5) (extract-href %6) (extract-num %6))
+         ordinals titles times points users comments))))
+                   
 (defn get-subs [res]
   "Returns a map of all submissions located at or within
    resource r. The type of x can be any of the following
@@ -146,10 +134,10 @@ symbol resolve))]
    uri and returns a lazy list representing the parsed data."
  (lazy-seq
   (let [ns (html-resource res)
-        next-uri (get-next-page-uri res (get-more-link ns))]
-    (println next-uri)
+        more-url (select-href ns :sub-more-url)
+        next-uri (get-next-page-uri res more-url)]
     (concat
-     (flatten (get-subs-map ns))
+     (get-subs-map ns)
      (get-subs-follow next-uri)))))
 
 

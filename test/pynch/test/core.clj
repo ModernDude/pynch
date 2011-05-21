@@ -4,48 +4,47 @@
   (:require [clj-time.core :as dt])
   (:use [clojure.java.io :as io]))
 
+(defn static-now []
+  "Function to return a static date that can be used for testing"
+  (dt/date-time 2011 05 20))
 
 (def sub-1
   (make-sub
    1 "Why Geeks Should Love HP WebOS"
    "http://developer.palm.com/blog/2011/05/10-reasons-for-geeks-to-love-hp-webos/"
-   (hn-time-to-dt "3 hours ago") 118 "unwiredben" "item?id=2538655" 49))
+   (dt/date-time 2011 05 19 21) 118 "unwiredben" "item?id=2538655" 49))
 
 (def sub-14
   (make-sub
    14 "Google: Go ahead and hack the Chrome Book"
    "http://techcrunch.com/2011/05/11/hack-chromebooks"
-   (hn-time-to-dt "6 hours ago") 57 "MatthewB" "item?id=2537994" 0))
+   (dt/date-time 2011 05 19 18) 57 "MatthewB" "item?id=2537994" 0))
 
 (def sub-30
   (make-sub
    30 "Finally, Google Tasks API"
    "https://code.google.com/apis/tasks/index.html"
-   (hn-time-to-dt "6 hours ago") 32 "toomanymike" "item?id=2538023" 4))
+   (dt/date-time 2011 05 19 18) 32 "toomanymike" "item?id=2538023" 4))
 
 (def sub-31
   (make-sub
    31 "The False Choice Between Babies And Startups"
    "http://blogs.forbes.com/85broads/2011/05/16/the-false-choice-between-babies-and-startups/"
-   (hn-time-to-dt "12 hours ago") 46 "jemeshsu" "item?id=2554807" 30))
+   (dt/date-time 2011 05 19 12) 46 "jemeshsu" "item?id=2554807" 30))
 
 (def sub-60
   (make-sub
    60 "Exploring Lisp Libraries - and building a webapp on the way"
    "https://sites.google.com/site/sabraonthehill/home/exploring-quicklisp-packages"
-   (hn-time-to-dt "1 day ago") 69 "mahmud" "item?id=2552163" 3))
-
-(defn static-now []
-  "Function to return a static date that can be used for testing"
-  (println "static here")
-  (dt/date-time 2011 05 20))
+   (dt/date-time 2011 05 19) 69 "mahmud" "item?id=2552163" 3))
 
 (deftest test-get-subs
   (let [subs (-> "resources/submissions.html" io/resource get-subs)]
-    (is (= 30 (count subs )) "Count Should Be 30")
-    (is (= sub-1 (first subs)) "First Submission" )
-    (is (= sub-14 (nth subs 13)) "Fourteenth Submission")
-    (is (= sub-30 (last subs)) "Thirtieth Submission")))
+    (binding [pynch.core/now static-now]
+      (is (= 30 (count subs )) "Count Should Be 30")
+      (is (= sub-1 (first subs)) "First Submission" )
+      (is (= sub-14 (nth subs 13)) "Fourteenth Submission")
+      (is (= sub-30 (last subs)) "Thirtieth Submission"))))
 
 (deftest test-get-subs-follow
   (let [subs (->> "resources/submissions.html" io/resource get-subs-follow (take 60))]

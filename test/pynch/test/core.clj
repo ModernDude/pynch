@@ -38,23 +38,57 @@
    "https://sites.google.com/site/sabraonthehill/home/exploring-quicklisp-packages"
    (dt/date-time 2011 05 19) 69 "mahmud" "item?id=2552163" 3))
 
+
+
+(def item-2498292
+  (make-item
+   "Ask HN: Recommended Math Primer for SICP" (dt/date-time 2011 04 28) 25
+   "imechura" ["Can you recommend a decent math primer for those of us who did not earn a degree in CS and would like to undertake the SICP text?"] []))
+
+(def cmnt-first
+  (make-item-comment
+   "swannodette" (dt/date-time 2011 04 28) "item?id=2498661" ["When I first read through SICP I stopped early in the book when it got the bit that required Calculus and took a massive detour to understand Calculus. Then I returned to the book, solved the problem, and discovered that the rest book had hardly any difficult math - certainly nothing that required me to know anything beyond high school math. C'est la vie."]))
+
+(def cmnt-2
+  (make-item-comment
+   "orijing" (dt/date-time 2011 04 28) "item?id=2498466" ["I know this might not be so helpful for you, but I don't think it requires anything above a basic understanding of math. The \"deepest\" math was in the beginning, when it covered Newton's Method for square root approximation." "SICP is used as the introductory CS text at many universities (Berkeley included) and has no official math prerequisites. I think you should try reading it first, and if you get stuck on a concept like Newton's Method, you can just read about it on Wikipedia." "But otherwise, there was basically no math involved, except as simple illustrations. Good luck! It was a great text."]))
+
+(def cmnt-last
+  (make-item-comment
+   "happy4crazy" (dt/date-time 2011 04 28) "item?id=2498480"
+   ["Have you tried reading SICP without a math primer? What's your current math background?"]))
+
+
 (deftest test-get-subs
-  (let [subs (-> "resources/submissions.html" io/resource get-subs)]
-    (binding [pynch.core/now static-now]
+  (binding [pynch.core/now static-now]
+    (let [subs (-> "resources/submissions.html" io/resource get-subs)]
       (is (= 30 (count subs )) "Count Should Be 30")
       (is (= sub-1 (first subs)) "First Submission" )
       (is (= sub-14 (nth subs 13)) "Fourteenth Submission")
       (is (= sub-30 (last subs)) "Thirtieth Submission"))))
 
 (deftest test-get-subs-follow
-  (let [subs (->> "resources/submissions.html" io/resource get-subs-follow (take 60))]
-    (binding [pynch.core/*crawl-delay* 0
-              pynch.core/now static-now]
+  (binding [pynch.core/*crawl-delay* 0
+            pynch.core/now static-now]
+    (let [subs (->> "resources/submissions.html" io/resource get-subs-follow (take 60))]
       (is (= 60 (count subs)) "Count should be 60")
       (is (= sub-1 (first subs)) "First Submission")
       (is (= sub-31 (nth subs 30))"Thirty-First Submission")
-      (is (= sub-60 (nth subs 59)) "Sixtieth Submission")
-      (println pynch.core/*crawl-delay*))))
+      (is (= sub-60 (nth subs 59)) "Sixtieth Submission"))))
+
+
+(deftest test-get-item
+  (binding [pynch.core/now static-now]
+    (let [items (-> "resources/item_2498292.html" io/resource get-item)]
+      (is (= (:title item-2498292) (:title items)))
+      (is (= (:submission-time item-2498292) (:submission-time items)))
+      (is (= (:points item-2498292) (:points items)))
+      (is (= (:user item-2498292) (:user items)))
+      (is (= (:notes item-2498292 (:notes items))))
+      (is (= 12 (count (:comments items))) "Should have 12 comments")
+      (is (= cmnt-first (nth (:comments items) 0)))
+      (is (= cmnt-2 (nth (:comments items) 1)))
+      (is (= cmnt-last (last (:comments items))))))) 
 
 (deftest test-re-first-seq-digits
   (testing "Number Exist"

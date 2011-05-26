@@ -3,10 +3,8 @@
   (:require [clj-time.core :as tm])
   (:require [clojure.string :as str]))
 
-
 (def *hn-url* "http://news.ycombinator.com/")
 (def *crawl-delay* 30000)
-
 
 (defrecord Submission [title url subm-time points user cmnt-url cmnt-cnt])
 (defrecord Comment [user time link paragraphs])
@@ -17,32 +15,33 @@
  the string given by s. If the string can not be found nil will
  be returned. The argument d can be used to indicate a default
  value in the case that a sequence of digits can not be found."
- ([s](re-first-seq-digits s nil)) ([s default]
+ ([s] (re-first-seq-digits s nil))
+ ([s default]
     (let [found (re-find #"\d+" s)]
       (if (nil? found)
         default
         (to-int found)))))
 
-(defn now []
-  (let [d (tm/now)
-        remove-secs (fn [d] (->> d tm/sec tm/secs (tm/minus d)))
-        remove-milli (fn [d] (->> d tm/milli tm/millis (tm/minus d)))]
-    (-> d remove-secs remove-milli)))
+(defn now-nearest-minute []
+  (let [dt (tm/now)
+        remove-secs (fn [dt] (->> dt tm/sec tm/secs (tm/minus dt)))
+        remove-milli (fn [dt] (->> dt tm/milli tm/millis (tm/minus dt)))]
+    (-> dt remove-secs remove-milli)))
 
-(defn hn-time-to-dt [s]
+(defn ago-to-time [s]
  "Takes a string of the form 'x y ago' where x is an integral
  value and y indicates a period. For example, a string could
  be '3 days ago' or '5 hours ago'. This function will return
  a date-time object offset to reflect the date and time
  represented by the string."
-  (let [offset (re-first-seq-digits s 0)
+ (let [offset (re-first-seq-digits s 0)
        periods ["minute", "hour", "day", "week", "month", "year"]
        period-found? (fn [p] (string? (re-find (re-pattern p) s)))
        first-found (fn [p] (if (period-found? p) p nil))
        create-period-fn (fn [p] (->> (str "clj-time.core/" p "s") symbol resolve))]
    (if-let [found-period (some first-found periods)]
-     (tm/minus (now) ((create-period-fn found-period)  offset))
-     (now))))
+     (tm/minus (now-nearest-minute) ((create-period-fn found-period)  offset))
+     (now-nearest-minute))))
 
 (def selectors
   {:sub-more-url [:td.title [:a (enlv/attr-starts :href "/x?fnid")]]
@@ -61,14 +60,11 @@
                       [:p :> enlv/text-node] }
    })
 
-(defn- extract-num [node]
-  (-> node enlv/text (re-first-seq-digits 0)))
-
-(defn- extract-href [node]
-  (-> node :attrs :href))
-
-(defn- extract-time [node]
-  (hn-time-to-dt node))
+(def extractors
+  {:num (fn [node] (-> node enlv/text (re-first-seq-digits 0)))
+   :url (fn [node] (-> node :attrs :href))
+   :time (fn [node] (-> node ago-to-time))
+   :text (fn [node] (-> node enlv/text))})
 
 (defn- extract-paragraphs [ns]
   "Returns a sequece of strings representing each paragraph in the comment."
@@ -95,13 +91,19 @@
 (defn select-subs [ns]
   (first
    (enlv/let-select
-    ns [titles (:sub-titles selectors)
-        times (:sub-times selectors)
-        points (:sub-points selectors)
-        users (:sub-users selectors)
-        comments (:sub-com-urls selectors)]
-    (map #(Submission. (text %1) (extract-href %1) (extract-time %2)
-           (extract-num %3) (text %4) (extract-href %5) (extract-num %5))
+    ns [titles (selectors :sub-titles)
+        times (selectors :sub-times)
+        points (selectors :sub-points)
+        users (selectors :sub-users)
+        comments (selectors :sub-com-urls)]
+    (map #(Submission.
+           ((extractors :text) %1)
+           ((extractors :url) %1)
+           ((extractors :time) %2)
+           ((extractors :num) %3)
+           ((extractors :text) %4)
+           ((extractors :url) %5)
+           ((extractors :num) %5))
          titles times points users comments))))
                    
 (defn get-subs [res]
@@ -127,37 +129,37 @@
     ""
   (first
    (enlv/let-select
-    ns [users (:cmnt-users selectors)
-        times (:cmnt-times selectors)
-        links (:cmnt-links selectors)
-        cmnt-text (:cmnt-text selectors)]
+    ns [users (selectors :cmnt-users)
+        times (selectors :cmnt-times)
+        links (selectors :cmnt-links)
+        cmnt-text (selectors :cmnt-text)]
     (map #(Comment. 
-           (text %1)
-           (extract-time %2)
-           (extract-href %3)
+           ((extractors :text) %1)
+           ((extractors :time) %2)
+           ((extractors :url) %3)
            (extract-paragraphs %4))
          users times links cmnt-text))))
 
 (defn select-sub-details [ns]
   ""
-   (first
+  (first
    (enlv/let-select
-    ns [titles (:sub-titles selectors)
-        times (:sub-times selectors)
-        points (:sub-points selectors)
-        users (:sub-users selectors)
-        notes (:notes selectors)
-        comments (:sub-com-urls selectors)]
+    ns [titles (selectors :sub-titles)
+        times (selectors :sub-times)
+        points (selectors :sub-points)
+        users (selectors :sub-users)
+        notes (selectors :notes)
+        comments (selectors :sub-com-urls)]
     (map #(SubmissionDetails.
            (Submission. 
-            (enlv/text %1)
-            (extract-href %1)
-            (extract-time %2)
-            (extract-num %3)
-            (enlv/text %4)
-            (extract-href %5)
-            (extract-num %5))
-           (enlv/text %6)
+            ((extractors :text) %1)
+            ((extractors :url) %1)
+            ((extractors :time) %2)
+            ((extractors :num) %3)
+            ((extractors :text) %4)
+            ((extractors :url) %5)
+            ((extractors :num) %5))
+           ((extractors :text) %6)
            (select-sub-comments ns))
          titles times points users comments notes))))
                            

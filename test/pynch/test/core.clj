@@ -64,7 +64,7 @@
 
 
 (deftest test-get-subs
-  (binding [pynch.core/now static-now]
+  (binding [pynch.core/now-nearest-minute static-now]
     (let [subs (-> "resources/submissions.html" io/resource get-subs)]
       (is (= 30 (count subs )) "Count Should Be 30")
       (is (= sub-1 (first subs)) "First Submission" )
@@ -73,7 +73,7 @@
 
 (deftest test-get-subs-follow
   (binding [pynch.core/*crawl-delay* 0
-            pynch.core/now static-now]
+            pynch.core/now-nearest-minute static-now]
     (let [subs (->> "resources/submissions.html" io/resource get-subs-follow (take 60))]
       (is (= 60 (count subs)) "Count should be 60")
       (is (= sub-1 (first subs)) "First Submission")
@@ -82,7 +82,7 @@
 
 
 (deftest test-get-sub-details
-  (binding [pynch.core/now static-now]
+  (binding [pynch.core/now-nearest-minute static-now]
     (let [details (-> "resources/item_2498292.html" io/resource get-sub-details)]
       (is (= sub-2498292 (:submission details)))
       (is (= sub-2498292-text (:paragraphs details)))
@@ -123,7 +123,7 @@
    current date"
   (partial dt/minus (dt/now)))
 
-(deftest test-hn-time-to-date
+(deftest test-ago-to-to-time
   (testing "Time Period Specificed"
     (testing "Years"
       (is (dates-same? ((now-minus) (dt/years 10)) (hn-time-to-dt "10 years ago")))

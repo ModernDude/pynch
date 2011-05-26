@@ -100,11 +100,10 @@
       (.resolve new-res (str/replace more-link #"^/" ""))
       (.resolve new-res more-link))))
 
-(defn get-subs-rec [ns]
+(defn select-subs [ns]
   (first
    (let-select
-    ns [ordinals (:sub-ordinals selectors)
-        titles (:sub-titles selectors)
+    ns [titles (:sub-titles selectors)
         times (:sub-times selectors)
         points (:sub-points selectors)
         users (:sub-users selectors)
@@ -118,7 +117,7 @@
    resource r. The type of x can be any of the following
    String, java.io.FileInputStream, java.io.Reader,
    java.io.InputStream, java.net.URL, java.net.URI"
- (-> res html-resource get-subs-rec))
+ (-> res html-resource select-subs))
 
 (defn get-subs-follow [res]
   "Loads the hacker news submission list given by the resource
@@ -127,7 +126,7 @@
   (let [ns (html-resource res)
         more-url (get-more-url ns)
         next-uri (get-next-page-uri res more-url)]
-    (concat (get-subs-rec ns)
+    (concat (select-subs ns)
             (do (Thread/sleep *crawl-delay*)
                 (get-subs-follow next-uri))))))
 

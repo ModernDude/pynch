@@ -10,9 +10,9 @@
 (def *crawl-delay* 30000)
 
 
-(defrecord subm [title url subm-time points user cmnt-url cmnt-cnt])
-(defrecord cmnt [user time link paragraphs])
-(defrecord subm-dtls [subm paragraphs comments])
+(defrecord Submission [title url subm-time points user cmnt-url cmnt-cnt])
+(defrecord Comment [user time link paragraphs])
+(defrecord SubmissionDetails [submission paragraphs comments])
 
 
 
@@ -94,8 +94,7 @@
 (defn- get-next-page-uri [res more-link]
   "Find the next absolute uri based on the given uri and the
    more link found in ns."
- 
-  (let [new-res (get-res-uri res)]
+   (let [new-res (get-res-uri res)]
     (if (= "file" (.getScheme new-res))
       (.resolve new-res (str/replace more-link #"^/" ""))
       (.resolve new-res more-link))))
@@ -108,7 +107,7 @@
         points (:sub-points selectors)
         users (:sub-users selectors)
         comments (:sub-com-urls selectors)]
-    (map #(subm. (text %1) (extract-href %1) (extract-time %2)
+    (map #(Submission. (text %1) (extract-href %1) (extract-time %2)
            (extract-num %3) (text %4) (extract-href %5) (extract-num %5))
          titles times points users comments))))
                    
@@ -131,59 +130,46 @@
                 (get-subs-follow next-uri))))))
 
 
-(defn make-item-comment [user time link cmnt-paras]
-  {:user user
-   :time time
-   :link link
-   :cmnt-paras cmnt-paras})
-
-(defn get-item-comments-map [ns]
-  ""
+(defn select-sub-comments [ns]
+    ""
   (first
    (let-select
     ns [users (:cmnt-users selectors)
         times (:cmnt-times selectors)
         links (:cmnt-links selectors)
         cmnt-text (:cmnt-text selectors)]
-    (map #(make-item-comment
+    (map #(Comment. 
            (text %1)
            (extract-time %2)
            (extract-href %3)
            (extract-paragraphs %4))
-         
          users times links cmnt-text))))
- 
 
-
-(defn make-item [title sub-time points
-                 user notes comments]
-  {:title title
-   :submission-time sub-time
-   :points points
-   :user user
-   :notes notes
-   :comments comments})
-
-(defn get-item-map [ns]
+(defn select-sub-details [ns]
   ""
-  (first
+   (first
    (let-select
     ns [titles (:sub-titles selectors)
         times (:sub-times selectors)
         points (:sub-points selectors)
         users (:sub-users selectors)
         notes (:notes selectors)]
-    (map #(make-item
-           (text %1)
-           (extract-time %2)
-           (extract-num %3)
-           (text %4)
-           (text %5)
-           (get-item-comments-map ns))
+    (map #(SubmissionDetails.
+           (Submission. 
+            (text %1)
+            ""; url
+            (extract-time %2)
+            (extract-num %3)
+            (text %4)
+            ""; comment url
+            ""); comment cnt)
+            (text %5)
+           (select-sub-comments ns))
          titles times points users notes))))
+                           
 
-(defn get-item [res]
+(defn get-sub-details [res]
   ""
-  (-> res html-resource get-item-map first))
+  (-> res html-resource select-sub-details first))
 
 

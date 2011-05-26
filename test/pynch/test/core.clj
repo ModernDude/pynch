@@ -1,6 +1,6 @@
 (ns pynch.test.core
   (:use [pynch.core])
-  (:import [pynch.core subm])
+  (:import [pynch.core Submission Comment SubmissionDetails])
   (:use [clojure.test])
   (:require [clj-time.core :as dt])
   (:use [clojure.java.io :as io]))
@@ -9,55 +9,56 @@
   "Function to return a static date that can be used for testing"
   (dt/date-time 2011 05 20))
 
-;(defrecord subm [title url subm-time points user cmnt-url cmnt-cnt])
-
 (def sub-1
-  (subm.
+  (Submission.
    "Why Geeks Should Love HP WebOS"
    "http://developer.palm.com/blog/2011/05/10-reasons-for-geeks-to-love-hp-webos/"
    (dt/date-time 2011 05 19 21) 118 "unwiredben" "item?id=2538655" 49))
 
 (def sub-14
-  (subm.
+  (Submission.
    "Google: Go ahead and hack the Chrome Book"
    "http://techcrunch.com/2011/05/11/hack-chromebooks"
    (dt/date-time 2011 05 19 18) 57 "MatthewB" "item?id=2537994" 0))
 
 (def sub-30
-  (subm.
+  (Submission.
    "Finally, Google Tasks API"
    "https://code.google.com/apis/tasks/index.html"
    (dt/date-time 2011 05 19 18) 32 "toomanymike" "item?id=2538023" 4))
 
 (def sub-31
-  (subm.
+  (Submission.
    "The False Choice Between Babies And Startups"
    "http://blogs.forbes.com/85broads/2011/05/16/the-false-choice-between-babies-and-startups/"
    (dt/date-time 2011 05 19 12) 46 "jemeshsu" "item?id=2554807" 30))
 
 (def sub-60
-  (subm.
+  (Submission.
    "Exploring Lisp Libraries - and building a webapp on the way"
    "https://sites.google.com/site/sabraonthehill/home/exploring-quicklisp-packages"
    (dt/date-time 2011 05 19) 69 "mahmud" "item?id=2552163" 3))
 
 
 
-(def item-2498292
-  (make-item
-   "Ask HN: Recommended Math Primer for SICP" (dt/date-time 2011 04 28) 25
-   "imechura" ["Can you recommend a decent math primer for those of us who did not earn a degree in CS and would like to undertake the SICP text?"] []))
+(def sub-2498292
+  (Submission.
+   "Ask HN: Recommended Math Primer for SICP"
+   "item?id=2498292"
+   (dt/date-time 2011 04 28) 25 "imechura" "item?id=2498292" 12))
+
+(def sub-2498292-text "Can you recommend a decent math primer for those of us who did not earn a degree in CS and would like to undertake the SICP text?")
 
 (def cmnt-first
-  (make-item-comment
+  (Comment.
    "swannodette" (dt/date-time 2011 04 28) "item?id=2498661" ["When I first read through SICP I stopped early in the book when it got the bit that required Calculus and took a massive detour to understand Calculus. Then I returned to the book, solved the problem, and discovered that the rest book had hardly any difficult math - certainly nothing that required me to know anything beyond high school math. C'est la vie."]))
 
 (def cmnt-2
-  (make-item-comment
+  (Comment.
    "orijing" (dt/date-time 2011 04 28) "item?id=2498466" ["I know this might not be so helpful for you, but I don't think it requires anything above a basic understanding of math. The \"deepest\" math was in the beginning, when it covered Newton's Method for square root approximation." "SICP is used as the introductory CS text at many universities (Berkeley included) and has no official math prerequisites. I think you should try reading it first, and if you get stuck on a concept like Newton's Method, you can just read about it on Wikipedia." "But otherwise, there was basically no math involved, except as simple illustrations. Good luck! It was a great text."]))
 
 (def cmnt-last
-  (make-item-comment
+  (Comment.
    "happy4crazy" (dt/date-time 2011 04 28) "item?id=2498480"
    ["Have you tried reading SICP without a math primer? What's your current math background?"]))
 
@@ -80,18 +81,15 @@
       (is (= sub-60 (nth subs 59)) "Sixtieth Submission"))))
 
 
-(deftest test-get-item
+(deftest test-get-sub-details
   (binding [pynch.core/now static-now]
-    (let [items (-> "resources/item_2498292.html" io/resource get-item)]
-      (is (= (:title item-2498292) (:title items)))
-      (is (= (:submission-time item-2498292) (:submission-time items)))
-      (is (= (:points item-2498292) (:points items)))
-      (is (= (:user item-2498292) (:user items)))
-      (is (= (:notes item-2498292 (:notes items))))
-      (is (= 12 (count (:comments items))) "Should have 12 comments")
-      (is (= cmnt-first (nth (:comments items) 0)))
-      (is (= cmnt-2 (nth (:comments items) 1)))
-      (is (= cmnt-last (last (:comments items))))))) 
+    (let [details (-> "resources/item_2498292.html" io/resource get-sub-details)]
+      (is (= sub-2498292 (:submission details)))
+      (is (= sub-2498292-text (:paragraphs details)))
+      (is (= 12 (count (:comments details))) "Should have 12 comments")
+      (is (= cmnt-first (nth (:comments details) 0)))
+      (is (= cmnt-2 (nth (:comments details) 1)))
+      (is (= cmnt-last (last (:comments details))))))) 
 
 (deftest test-re-first-seq-digits
   (testing "Number Exist"

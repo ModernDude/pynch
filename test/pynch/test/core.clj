@@ -1,5 +1,6 @@
 (ns pynch.test.core
   (:use [pynch.core])
+  (:import [pynch.core subm])
   (:use [clojure.test])
   (:require [clj-time.core :as dt])
   (:use [clojure.java.io :as io]))
@@ -8,33 +9,35 @@
   "Function to return a static date that can be used for testing"
   (dt/date-time 2011 05 20))
 
+;(defrecord subm [title url subm-time points user cmnt-url cmnt-cnt])
+
 (def sub-1
-  (make-sub
-   1 "Why Geeks Should Love HP WebOS"
+  (subm.
+   "Why Geeks Should Love HP WebOS"
    "http://developer.palm.com/blog/2011/05/10-reasons-for-geeks-to-love-hp-webos/"
    (dt/date-time 2011 05 19 21) 118 "unwiredben" "item?id=2538655" 49))
 
 (def sub-14
-  (make-sub
-   14 "Google: Go ahead and hack the Chrome Book"
+  (subm.
+   "Google: Go ahead and hack the Chrome Book"
    "http://techcrunch.com/2011/05/11/hack-chromebooks"
    (dt/date-time 2011 05 19 18) 57 "MatthewB" "item?id=2537994" 0))
 
 (def sub-30
-  (make-sub
-   30 "Finally, Google Tasks API"
+  (subm.
+   "Finally, Google Tasks API"
    "https://code.google.com/apis/tasks/index.html"
    (dt/date-time 2011 05 19 18) 32 "toomanymike" "item?id=2538023" 4))
 
 (def sub-31
-  (make-sub
-   31 "The False Choice Between Babies And Startups"
+  (subm.
+   "The False Choice Between Babies And Startups"
    "http://blogs.forbes.com/85broads/2011/05/16/the-false-choice-between-babies-and-startups/"
    (dt/date-time 2011 05 19 12) 46 "jemeshsu" "item?id=2554807" 30))
 
 (def sub-60
-  (make-sub
-   60 "Exploring Lisp Libraries - and building a webapp on the way"
+  (subm.
+   "Exploring Lisp Libraries - and building a webapp on the way"
    "https://sites.google.com/site/sabraonthehill/home/exploring-quicklisp-packages"
    (dt/date-time 2011 05 19) 69 "mahmud" "item?id=2552163" 3))
 

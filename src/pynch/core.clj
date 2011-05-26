@@ -9,6 +9,13 @@
 (def *hn-url* "http://news.ycombinator.com/")
 (def *crawl-delay* 30000)
 
+
+(defrecord subm [title url subm-time points user cmnt-url cmnt-cnt])
+(defrecord cmnt [user time link paragraphs])
+(defrecord subm-dtls [subm paragraphs comments])
+
+
+
 (defn to-int [s]
   (Integer/parseInt s))
 
@@ -93,19 +100,7 @@
       (.resolve new-res (str/replace more-link #"^/" ""))
       (.resolve new-res more-link))))
 
-(defn make-sub [ord title sub-url sub-time points
-                user com-url com-cnt]
-  {:ordinal ord
-   :title title
-   :submission-url sub-url
-   :submission-time sub-time
-   :points points
-   :user user
-   :comments-url com-url
-   :comments-count com-cnt})
-
-(defn- get-subs-map [ns]
-  "Get a sequext of maps for each submission found in ns."
+(defn get-subs-rec [ns]
   (first
    (let-select
     ns [ordinals (:sub-ordinals selectors)
@@ -114,17 +109,16 @@
         points (:sub-points selectors)
         users (:sub-users selectors)
         comments (:sub-com-urls selectors)]
-    (map #(make-sub
-           (extract-num %1) (text %2) (extract-href %2) (extract-time %3)
-           (extract-num %4) (text %5) (extract-href %6) (extract-num %6))
-         ordinals titles times points users comments))))
+    (map #(subm. (text %1) (extract-href %1) (extract-time %2)
+           (extract-num %3) (text %4) (extract-href %5) (extract-num %5))
+         titles times points users comments))))
                    
 (defn get-subs [res]
   "Returns a map of all submissions located at or within
    resource r. The type of x can be any of the following
    String, java.io.FileInputStream, java.io.Reader,
    java.io.InputStream, java.net.URL, java.net.URI"
- (-> res html-resource get-subs-map))
+ (-> res html-resource get-subs-rec))
 
 (defn get-subs-follow [res]
   "Loads the hacker news submission list given by the resource
@@ -133,7 +127,7 @@
   (let [ns (html-resource res)
         more-url (get-more-url ns)
         next-uri (get-next-page-uri res more-url)]
-    (concat (get-subs-map ns)
+    (concat (get-subs-rec ns)
             (do (Thread/sleep *crawl-delay*)
                 (get-subs-follow next-uri))))))
 
@@ -161,6 +155,7 @@
          users times links cmnt-text))))
  
 
+
 (defn make-item [title sub-time points
                  user notes comments]
   {:title title
@@ -187,9 +182,6 @@
            (text %5)
            (get-item-comments-map ns))
          titles times points users notes))))
-
- 
-  
 
 (defn get-item [res]
   ""

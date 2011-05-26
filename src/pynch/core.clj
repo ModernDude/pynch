@@ -1,7 +1,5 @@
 (ns pynch.core
-  (:use [net.cgrand.enlive-html :only
-         [text has re-pred select attr-starts text-node but
-          text-pred html-resource texts let-select nth-child html-snippet]])
+  (:require [net.cgrand.enlive-html :as enlv])
   (:require [clj-time.core :as tm])
   (:require [clojure.string :as str]))
 
@@ -13,11 +11,6 @@
 (defrecord Submission [title url subm-time points user cmnt-url cmnt-cnt])
 (defrecord Comment [user time link paragraphs])
 (defrecord SubmissionDetails [submission paragraphs comments])
-
-
-
-(defn to-int [s]
-  (Integer/parseInt s))
 
 (defn re-first-seq-digits
  "Uses regex to find the first sequential string of digits in
@@ -52,24 +45,24 @@
      (now))))
 
 (def selectors
-  {:sub-more-url [:td.title [:a (attr-starts :href "/x?fnid")]]
-   :sub-ordinals [[:.title (has [(re-pred #"^[0-9]+\.{1}$")])]]
+  {:sub-more-url [:td.title [:a (enlv/attr-starts :href "/x?fnid")]]
+   :sub-ordinals [[:.title (enlv/has [(enlv/re-pred #"^[0-9]+\.{1}$")])]]
    :sub-titles [:.title :a]
-   :sub-points [:td.subtext [:span (attr-starts :id "score_")]]
-   :sub-users [:td.subtext [:a (attr-starts :href "user?")]]
-   :sub-com-urls [:td.subtext [:a (attr-starts :href "item?")]]
-   :sub-times [:td.subtext [text-node (text-pred #(re-find #"ago\s*\|" %))]]
-   :notes [:table :tr :td :table [:tr (nth-child 4)]]
-   :cmnt-users [:.default :.comhead [:a (attr-starts :href "user?")]]
-   :cmnt-times [:.default :.comhead [text-node (text-pred #(re-find #"ago\s*\|" %))]]
-   :cmnt-links [:.default :.comhead [:a (attr-starts :href "item?")]]
-   :cmnt-text [[:.default (has [:a])  ] ]
-   :cmnt-text-paras #{[:font :> text-node]
-                      [:p :> text-node] }
+   :sub-points [:td.subtext [:span (enlv/attr-starts :id "score_")]]
+   :sub-users [:td.subtext [:a (enlv/attr-starts :href "user?")]]
+   :sub-com-urls [:td.subtext [:a (enlv/attr-starts :href "item?")]]
+   :sub-times [:td.subtext [text-node (enlv/text-pred #(re-find #"ago\s*\|" %))]]
+   :notes [:table :tr :td :table [:tr (enlv/nth-child 4)]]
+   :cmnt-users [:.default :.comhead [:a (enlv/attr-starts :href "user?")]]
+   :cmnt-times [:.default :.comhead [enlv/text-node (enlv/text-pred #(re-find #"ago\s*\|" %))]]
+   :cmnt-links [:.default :.comhead [:a (enlv/attr-starts :href "item?")]]
+   :cmnt-text [[:.default (enlv/has [:a])  ] ]
+   :cmnt-text-paras #{[:font :> enlv/text-node]
+                      [:p :> enlv/text-node] }
    })
 
 (defn- extract-num [node]
-  (-> node text (re-first-seq-digits 0)))
+  (-> node enlv/text (re-first-seq-digits 0)))
 
 (defn- extract-href [node]
   (-> node :attrs :href))
@@ -80,7 +73,7 @@
 (defn- extract-paragraphs [ns]
   "Returns a sequece of strings representing each paragraph in the comment."
   (drop-last
-    (select ns (:cmnt-text-paras selectors))))
+    (enlv/select ns (:cmnt-text-paras selectors))))
 
 
 (defmulti get-res-uri class)
@@ -101,7 +94,7 @@
 
 (defn select-subs [ns]
   (first
-   (let-select
+   (enlv/let-select
     ns [titles (:sub-titles selectors)
         times (:sub-times selectors)
         points (:sub-points selectors)
@@ -116,13 +109,13 @@
    resource r. The type of x can be any of the following
    String, java.io.FileInputStream, java.io.Reader,
    java.io.InputStream, java.net.URL, java.net.URI"
- (-> res html-resource select-subs))
+ (-> res enlv/html-resource select-subs))
 
 (defn get-subs-follow [res]
   "Loads the hacker news submission list given by the resource
    uri and returns a lazy list representing the parsed data."
  (lazy-seq
-  (let [ns (html-resource res)
+  (let [ns (enlv/html-resource res)
         more-url (get-more-url ns)
         next-uri (get-next-page-uri res more-url)]
     (concat (select-subs ns)
@@ -133,7 +126,7 @@
 (defn select-sub-comments [ns]
     ""
   (first
-   (let-select
+   (enlv/let-select
     ns [users (:cmnt-users selectors)
         times (:cmnt-times selectors)
         links (:cmnt-links selectors)
@@ -148,28 +141,29 @@
 (defn select-sub-details [ns]
   ""
    (first
-   (let-select
+   (enlv/let-select
     ns [titles (:sub-titles selectors)
         times (:sub-times selectors)
         points (:sub-points selectors)
         users (:sub-users selectors)
-        notes (:notes selectors)]
+        notes (:notes selectors)
+        comments (:sub-com-urls selectors)]
     (map #(SubmissionDetails.
            (Submission. 
-            (text %1)
-            ""; url
+            (enlv/text %1)
+            (extract-href %1)
             (extract-time %2)
             (extract-num %3)
-            (text %4)
-            ""; comment url
-            ""); comment cnt)
-            (text %5)
+            (enlv/text %4)
+            (extract-href %5)
+            (extract-num %5))
+           (enlv/text %6)
            (select-sub-comments ns))
-         titles times points users notes))))
+         titles times points users comments notes))))
                            
 
 (defn get-sub-details [res]
   ""
-  (-> res html-resource select-sub-details first))
+  (-> res enlv/html-resource select-sub-details first))
 
 

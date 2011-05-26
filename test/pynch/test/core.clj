@@ -45,21 +45,21 @@
   (Submission.
    "Ask HN: Recommended Math Primer for SICP"
    "item?id=2498292"
-   (dt/date-time 2011 04 28) 25 "imechura" "item?id=2498292" 12))
+   (dt/date-time 2011 04 24) 25 "imechura" "item?id=2498292" 12))
 
 (def sub-2498292-text "Can you recommend a decent math primer for those of us who did not earn a degree in CS and would like to undertake the SICP text?")
 
 (def cmnt-first
   (Comment.
-   "swannodette" (dt/date-time 2011 04 28) "item?id=2498661" ["When I first read through SICP I stopped early in the book when it got the bit that required Calculus and took a massive detour to understand Calculus. Then I returned to the book, solved the problem, and discovered that the rest book had hardly any difficult math - certainly nothing that required me to know anything beyond high school math. C'est la vie."]))
+   "swannodette" (dt/date-time 2011 04 24) "item?id=2498661" ["When I first read through SICP I stopped early in the book when it got the bit that required Calculus and took a massive detour to understand Calculus. Then I returned to the book, solved the problem, and discovered that the rest book had hardly any difficult math - certainly nothing that required me to know anything beyond high school math. C'est la vie."]))
 
 (def cmnt-2
   (Comment.
-   "orijing" (dt/date-time 2011 04 28) "item?id=2498466" ["I know this might not be so helpful for you, but I don't think it requires anything above a basic understanding of math. The \"deepest\" math was in the beginning, when it covered Newton's Method for square root approximation." "SICP is used as the introductory CS text at many universities (Berkeley included) and has no official math prerequisites. I think you should try reading it first, and if you get stuck on a concept like Newton's Method, you can just read about it on Wikipedia." "But otherwise, there was basically no math involved, except as simple illustrations. Good luck! It was a great text."]))
+   "orijing" (dt/date-time 2011 04 24) "item?id=2498466" ["I know this might not be so helpful for you, but I don't think it requires anything above a basic understanding of math. The \"deepest\" math was in the beginning, when it covered Newton's Method for square root approximation." "SICP is used as the introductory CS text at many universities (Berkeley included) and has no official math prerequisites. I think you should try reading it first, and if you get stuck on a concept like Newton's Method, you can just read about it on Wikipedia." "But otherwise, there was basically no math involved, except as simple illustrations. Good luck! It was a great text."]))
 
 (def cmnt-last
   (Comment.
-   "happy4crazy" (dt/date-time 2011 04 28) "item?id=2498480"
+   "happy4crazy" (dt/date-time 2011 04 24) "item?id=2498480"
    ["Have you tried reading SICP without a math primer? What's your current math background?"]))
 
 

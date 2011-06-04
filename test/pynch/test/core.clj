@@ -47,7 +47,7 @@
    "item?id=2498292"
    (dt/date-time 2011 04 24) 25 "imechura" "item?id=2498292" 12))
 
-(def sub-2498292-text "Can you recommend a decent math primer for those of us who did not earn a degree in CS and would like to undertake the SICP text?")
+(def sub-2498292-text   ["Can you recommend a decent math primer for those of us who did not earn a degree in CS and would like to undertake the SICP text?"])
 
 (def cmnt-first
   (Comment.
@@ -85,7 +85,7 @@
   (binding [pynch.core/now-nearest-minute static-now]
     (let [details (-> "resources/item_2498292.html" io/resource get-sub-details)]
       (is (= sub-2498292 (:submission details)))
-      (is (= sub-2498292-text (:paragraphs details)))
+      (is (= sub-2498292-text (:notes details)))
       (is (= 12 (count (:comments details))) "Should have 12 comments")
       (is (= cmnt-first (nth (:comments details) 0)))
       (is (= cmnt-2 (nth (:comments details) 1)))
@@ -123,27 +123,27 @@
    current date"
   (partial dt/minus (dt/now)))
 
-(deftest test-ago-to-to-time
+(deftest test-ago-to-time
   (testing "Time Period Specificed"
     (testing "Years"
-      (is (dates-same? ((now-minus) (dt/years 10)) (hn-time-to-dt "10 years ago")))
-      (is (dates-same? ((now-minus) (dt/years 10)) (hn-time-to-dt "10 year ago"))))
+      (is (dates-same? ((now-minus) (dt/years 10)) (ago-to-time "10 years ago")))
+      (is (dates-same? ((now-minus) (dt/years 10)) (ago-to-time "10 year ago"))))
     (testing "Months"
-      (is (dates-same? ((now-minus) (dt/months 4)) (hn-time-to-dt "4 months ago")))
-      (is (dates-same? ((now-minus) (dt/months 4)) (hn-time-to-dt "4 months ago"))))
+      (is (dates-same? ((now-minus) (dt/months 4)) (ago-to-time "4 months ago")))
+      (is (dates-same? ((now-minus) (dt/months 4)) (ago-to-time "4 months ago"))))
     (testing "Weeks"
-      (is (dates-same? ((now-minus) (dt/weeks 4)) (hn-time-to-dt "4 weeks ago")))
-      (is (dates-same? ((now-minus) (dt/weeks 4)) (hn-time-to-dt "4 week ago"))))
+      (is (dates-same? ((now-minus) (dt/weeks 4)) (ago-to-time "4 weeks ago")))
+      (is (dates-same? ((now-minus) (dt/weeks 4)) (ago-to-time "4 week ago"))))
      (testing "Days"
-      (is (dates-same? ((now-minus) (dt/days 4)) (hn-time-to-dt "4 days ago")))
-      (is (dates-same? ((now-minus) (dt/days 4)) (hn-time-to-dt "4 day ago"))))
+      (is (dates-same? ((now-minus) (dt/days 4)) (ago-to-time "4 days ago")))
+      (is (dates-same? ((now-minus) (dt/days 4)) (ago-to-time "4 day ago"))))
      (testing "Hours"
-      (is (dates-same? ((now-minus) (dt/hours 4)) (hn-time-to-dt "4 hours ago")))
-      (is (dates-same? ((now-minus) (dt/hours 4)) (hn-time-to-dt "4 hour ago"))))
+      (is (dates-same? ((now-minus) (dt/hours 4)) (ago-to-time "4 hours ago")))
+      (is (dates-same? ((now-minus) (dt/hours 4)) (ago-to-time "4 hour ago"))))
      (testing "Minutes"
-      (is (dates-same? ((now-minus) (dt/minutes 4)) (hn-time-to-dt "4 minutes ago")))
-      (is (dates-same? ((now-minus) (dt/minutes 4)) (hn-time-to-dt "4 minute ago")))))
+      (is (dates-same? ((now-minus) (dt/minutes 4)) (ago-to-time "4 minutes ago")))
+      (is (dates-same? ((now-minus) (dt/minutes 4)) (ago-to-time "4 minute ago")))))
   (testing "Time Period Not Specified"
-    (is (dates-same? (dt/now) (hn-time-to-dt "")))))
+    (is (dates-same? (dt/now) (ago-to-time "")))))
 
 

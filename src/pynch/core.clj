@@ -1,14 +1,14 @@
 (ns pynch.core
   (:require [net.cgrand.enlive-html :as enlv])
-  (:require [clj-time.core :as tm])
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str])
+  (:require [clj-time.core :as tm]))
 
-(def *hn-url* "http://news.ycombinator.com/")
+(def *sub-url* "http://news.ycombinator.com/")
 (def *crawl-delay* 30000)
 
-(defrecord Submission [title url subm-time points user cmnt-url cmnt-cnt])
-(defrecord Comment [user time link paragraphs])
-(defrecord SubmissionDetails [submission paragraphs comments])
+(defrecord Submission [title url time points submitter cmnt-url cmnt-cnt])
+(defrecord Comment [commenter time link texts])
+(defrecord SubmissionDetails [submission notes comments])
 
 (defn re-first-seq-digits
  "Uses regex to find the first sequential string of digits in
@@ -20,7 +20,7 @@
     (let [found (re-find #"\d+" s)]
       (if (nil? found)
         default
-        (to-int found)))))
+        (Integer/parseInt found)))))
 
 (defn now-nearest-minute []
   (let [dt (tm/now)
@@ -50,15 +50,15 @@
    :sub-points [:td.subtext [:span (enlv/attr-starts :id "score_")]]
    :sub-users [:td.subtext [:a (enlv/attr-starts :href "user?")]]
    :sub-com-urls [:td.subtext [:a (enlv/attr-starts :href "item?")]]
-   :sub-times [:td.subtext [text-node (enlv/text-pred #(re-find #"ago\s*\|" %))]]
+   :sub-times [:td.subtext [enlv/text-node (enlv/text-pred #(re-find #"ago\s*\|" %))]]
    :notes [:table :tr :td :table [:tr (enlv/nth-child 4)]]
    :cmnt-users [:.default :.comhead [:a (enlv/attr-starts :href "user?")]]
    :cmnt-times [:.default :.comhead [enlv/text-node (enlv/text-pred #(re-find #"ago\s*\|" %))]]
    :cmnt-links [:.default :.comhead [:a (enlv/attr-starts :href "item?")]]
-   :cmnt-text [[:.default (enlv/has [:a])  ] ]
-   :cmnt-text-paras #{[:font :> enlv/text-node]
-                      [:p :> enlv/text-node] }
-   })
+   :cmnt-text [[:.default (enlv/has [:a])]]
+   :cmnt-text-paras #{[enlv/text-node]
+                    
+                      [:pre :> :code]  } })
 
 (def extractors
   {:num (fn [node] (-> node enlv/text (re-first-seq-digits 0)))
@@ -66,19 +66,10 @@
    :time (fn [node] (-> node ago-to-time))
    :text (fn [node] (-> node enlv/text))})
 
-(defn- extract-paragraphs [ns]
-  "Returns a sequece of strings representing each paragraph in the comment."
-  (drop-last
-    (enlv/select ns (:cmnt-text-paras selectors))))
-
-
 (defmulti get-res-uri class)
-(defmethod get-res-uri :default [res] (java.net.URI. *hn-url*))
+(defmethod get-res-uri :default [res] (java.net.URI. *sub-url*))
 (defmethod get-res-uri java.net.URI [res] res)
 (defmethod get-res-uri java.net.URL [res] (.toURI res))
-  
-(defn- get-more-url [ns]
-  (-> (select ns (:sub-more-url selectors)) first extract-href))
 
 (defn- get-next-page-uri [res more-link]
   "Find the next absolute uri based on the given uri and the
@@ -87,6 +78,9 @@
     (if (= "file" (.getScheme new-res))
       (.resolve new-res (str/replace more-link #"^/" ""))
       (.resolve new-res more-link))))
+
+(defn- select-more-url [ns]
+  (->> :sub-more-url selectors (enlv/select ns) first ((extractors :url))))
 
 (defn select-subs [ns]
   (first
@@ -105,27 +99,13 @@
            ((extractors :url) %5)
            ((extractors :num) %5))
          titles times points users comments))))
-                   
-(defn get-subs [res]
-  "Returns a map of all submissions located at or within
-   resource r. The type of x can be any of the following
-   String, java.io.FileInputStream, java.io.Reader,
-   java.io.InputStream, java.net.URL, java.net.URI"
- (-> res enlv/html-resource select-subs))
 
-(defn get-subs-follow [res]
-  "Loads the hacker news submission list given by the resource
-   uri and returns a lazy list representing the parsed data."
- (lazy-seq
-  (let [ns (enlv/html-resource res)
-        more-url (get-more-url ns)
-        next-uri (get-next-page-uri res more-url)]
-    (concat (select-subs ns)
-            (do (Thread/sleep *crawl-delay*)
-                (get-subs-follow next-uri))))))
+(defn- select-comment-paragraphs [ns]
+  "Returns a sequece of strings representing each paragraph in the comment."
+  (filter #(not= % "-----")
+          (enlv/select ns (selectors :cmnt-text-paras))))
 
-
-(defn select-sub-comments [ns]
+(defn- select-sub-comments [ns]
     ""
   (first
    (enlv/let-select
@@ -137,10 +117,13 @@
            ((extractors :text) %1)
            ((extractors :time) %2)
            ((extractors :url) %3)
-           (extract-paragraphs %4))
+           (select-comment-paragraphs %4))
          users times links cmnt-text))))
 
-(defn select-sub-details [ns]
+(defn- select-sub-notes [ns]
+  (enlv/select ns [enlv/text-node]))
+
+(defn- select-sub-details [ns]
   ""
   (first
    (enlv/let-select
@@ -159,13 +142,28 @@
             ((extractors :text) %4)
             ((extractors :url) %5)
             ((extractors :num) %5))
-           ((extractors :text) %6)
+           (select-sub-notes %6)
            (select-sub-comments ns))
          titles times points users comments notes))))
-                           
+
+(defn get-subs [res]
+  "Returns a map of all submissions located at or within
+   resource r. The type of x can be any of the following
+   String, java.io.FileInputStream, java.io.Reader,
+   java.io.InputStream, java.net.URL, java.net.URI"
+ (-> res enlv/html-resource select-subs))
+
+(defn get-subs-follow [res]
+  "Loads the hacker news submission list given by the resource
+   uri and returns a lazy list representing the parsed data."
+ (lazy-seq
+  (let [ns (enlv/html-resource res)
+        more-url (select-more-url ns)
+        next-uri (get-next-page-uri res more-url)]
+    (concat (select-subs ns)
+            (do (Thread/sleep *crawl-delay*)
+                (get-subs-follow next-uri))))))
 
 (defn get-sub-details [res]
   ""
   (-> res enlv/html-resource select-sub-details first))
-
-

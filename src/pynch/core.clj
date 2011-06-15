@@ -6,6 +6,11 @@
 (def *sub-url* "http://news.ycombinator.com/")
 (def *crawl-delay* 30000)
 
+(def *default-sub-fields* [:points :title :sub-time :sub-url :user :com-url :com-count ])
+(def *default-detail-fields* [:title :time :points :user :notes :com-url :com-count :comments])
+(def *default-comment-fields* [:user :time :cmnt-url :cmnt-text])
+  
+
 (defrecord Submission [title url time points submitter cmnt-url cmnt-cnt])
 (defrecord Comment [commenter time link texts])
 (defrecord SubmissionDetails [submission notes comments])
@@ -43,6 +48,66 @@
      (tm/minus (now-nearest-minute) ((create-period-fn found-period)  offset))
      (now-nearest-minute))))
 
+
+(declare selectors extractors)
+
+(defprotocol FieldSpecifier
+  (get-selector [_])
+  (extract-field [_ node])
+  (get-key [_]))
+
+(defrecord FieldSpec [key selector-key extractor-key]
+  FieldSpecifier
+  (get-selector [_] (selectors selector-key))
+  (extract-field [_ node] ((extractors extractor-key) node))
+  (get-key [_] key))
+
+(defn- get-field-specs [keyseq coll]
+  "Take a seq of of field keys and return a collection of the matching
+FieldSpec records"
+  (letfn [(keys-match? [key field] (= (get-key field) key))
+          (key-to-field [key] (filter (partial keys-match? key) coll))]
+    (flatten (map key-to-field keyseq))))
+
+(defn select-fields [ns fields]
+  (letfn [(select-nodes [field]
+            (enlv/select ns (get-selector field)))
+          (get-field-extract-map-coll [nodes]
+            (reverse
+             (map (fn [field node]
+                    (hash-map (get-key field) (extract-field field node)))
+                  fields nodes)))
+          (nodes-to-map [& nodes]
+            (reduce #(merge %1 %2) {} (get-field-extract-map-coll nodes)))]
+    (apply map nodes-to-map (map select-nodes fields))))
+
+(def sub-fields
+  [(FieldSpec. :ordinal :sub-ordinals :num)
+   (FieldSpec. :points :sub-points :num)
+   (FieldSpec. :title :sub-titles :text)
+   (FieldSpec. :sub-time :sub-times :time)
+   (FieldSpec. :sub-url :sub-titles :url)
+   (FieldSpec. :user :sub-users :text)
+   (FieldSpec. :com-url :sub-com-urls :url)
+   (FieldSpec. :com-count :sub-com-urls :num)])
+
+(def detail-fields
+  [(FieldSpec. :title :sub-titles :text)
+   (FieldSpec. :time :sub-times :time)
+   (FieldSpec. :points :sub-points :num)
+   (FieldSpec. :user :sub-users :text)
+   (FieldSpec. :notes :notes :text)
+   (FieldSpec. :com-url :sub-com-urls :url)
+   (FieldSpec. :com-count :sub-com-urls :num)
+   (FieldSpec. :comments :comments :comments)])
+
+(def comment-fields
+  [(FieldSpec. :user :cmnt-users :text)
+   (FieldSpec. :time :cmnt-times :time)
+   (FieldSpec. :cmnt-url :cmnt-links :url)
+   (FieldSpec. :cmnt-text :cmnt-text-paras :comment)
+   (FieldSpec. :cmnt-nodes :cmnt-text-paras :identity)])
+
 (def selectors
   {:sub-more-url [:td.title [:a (enlv/attr-starts :href "/x?fnid")]]
    :sub-ordinals [[:.title (enlv/has [(enlv/re-pred #"^[0-9]+\.{1}$")])]]
@@ -50,21 +115,36 @@
    :sub-points [:td.subtext [:span (enlv/attr-starts :id "score_")]]
    :sub-users [:td.subtext [:a (enlv/attr-starts :href "user?")]]
    :sub-com-urls [:td.subtext [:a (enlv/attr-starts :href "item?")]]
+   :comments [:body]
    :sub-times [:td.subtext [enlv/text-node (enlv/text-pred #(re-find #"ago\s*\|" %))]]
    :notes [:table :tr :td :table [:tr (enlv/nth-child 4)]]
    :cmnt-users [:.default :.comhead [:a (enlv/attr-starts :href "user?")]]
    :cmnt-times [:.default :.comhead [enlv/text-node (enlv/text-pred #(re-find #"ago\s*\|" %))]]
    :cmnt-links [:.default :.comhead [:a (enlv/attr-starts :href "item?")]]
    :cmnt-text [[:.default (enlv/has [:a])]]
-   :cmnt-text-paras #{[enlv/text-node]
-                    
-                      [:pre :> :code]  } })
+   :cmnt-text-paras  [:.default]
+   :cmnt-text-text [:* [enlv/text-node]]})
 
 (def extractors
   {:num (fn [node] (-> node enlv/text (re-first-seq-digits 0)))
    :url (fn [node] (-> node :attrs :href))
    :time (fn [node] (-> node ago-to-time))
-   :text (fn [node] (-> node enlv/text))})
+   :text (fn [node] (-> node enlv/text))
+   :identity (fn [node] node)
+   :comments (fn [node] (select-fields node (get-field-specs *default-comment-fields* comment-fields)))
+   ;;;This is so complicated because the hn comment html is pretty fucked up and
+   ;;;looks like it has parsing issues coming through sax.
+   :comment (fn [node]
+               (letfn [(comhead? [n] (= "comhead" (-> n :attrs :class)))
+                       (anchor? [n] (= :a (:tag n)))
+                       (href [n] (-> n :attrs :href))
+                       (content-coll? [n] (-> n :content coll?))
+                       (reply? [n] (and (anchor? n) (re-find #"reply?" (href n))))
+                       (node-branch? [n] (and (not (comhead? n))
+                                              (not (reply? n))
+                                              (content-coll? n)))
+                       (filter-pred [n] (and (string? n) (not= "\n" n) (not= "-----" n)))]
+                 (filter filter-pred (tree-seq node-branch? :content node))))})
 
 (defmulti get-res-uri class)
 (defmethod get-res-uri :default [res] (java.net.URI. *sub-url*))
@@ -75,95 +155,42 @@
   "Find the next absolute uri based on the given uri and the
    more link found in ns."
    (let [new-res (get-res-uri res)]
-    (if (= "file" (.getScheme new-res))
+     (if (= "file" (.getScheme new-res))
       (.resolve new-res (str/replace more-link #"^/" ""))
       (.resolve new-res more-link))))
 
 (defn- select-more-url [ns]
   (->> :sub-more-url selectors (enlv/select ns) first ((extractors :url))))
 
-(defn select-subs [ns]
-  (first
-   (enlv/let-select
-    ns [titles (selectors :sub-titles)
-        times (selectors :sub-times)
-        points (selectors :sub-points)
-        users (selectors :sub-users)
-        comments (selectors :sub-com-urls)]
-    (map #(Submission.
-           ((extractors :text) %1)
-           ((extractors :url) %1)
-           ((extractors :time) %2)
-           ((extractors :num) %3)
-           ((extractors :text) %4)
-           ((extractors :url) %5)
-           ((extractors :num) %5))
-         titles times points users comments))))
-
-(defn- select-comment-paragraphs [ns]
-  "Returns a sequece of strings representing each paragraph in the comment."
-  (filter #(not= % "-----")
-          (enlv/select ns (selectors :cmnt-text-paras))))
-
-(defn- select-sub-comments [ns]
-    ""
-  (first
-   (enlv/let-select
-    ns [users (selectors :cmnt-users)
-        times (selectors :cmnt-times)
-        links (selectors :cmnt-links)
-        cmnt-text (selectors :cmnt-text)]
-    (map #(Comment. 
-           ((extractors :text) %1)
-           ((extractors :time) %2)
-           ((extractors :url) %3)
-           (select-comment-paragraphs %4))
-         users times links cmnt-text))))
-
-(defn- select-sub-notes [ns]
-  (enlv/select ns [enlv/text-node]))
-
-(defn- select-sub-details [ns]
-  ""
-  (first
-   (enlv/let-select
-    ns [titles (selectors :sub-titles)
-        times (selectors :sub-times)
-        points (selectors :sub-points)
-        users (selectors :sub-users)
-        notes (selectors :notes)
-        comments (selectors :sub-com-urls)]
-    (map #(SubmissionDetails.
-           (Submission. 
-            ((extractors :text) %1)
-            ((extractors :url) %1)
-            ((extractors :time) %2)
-            ((extractors :num) %3)
-            ((extractors :text) %4)
-            ((extractors :url) %5)
-            ((extractors :num) %5))
-           (select-sub-notes %6)
-           (select-sub-comments ns))
-         titles times points users comments notes))))
-
-(defn get-subs [res]
+(defn get-subs
   "Returns a map of all submissions located at or within
    resource r. The type of x can be any of the following
    String, java.io.FileInputStream, java.io.Reader,
    java.io.InputStream, java.net.URL, java.net.URI"
- (-> res enlv/html-resource select-subs))
+  ([res]
+     (get-subs res (get-field-specs *default-sub-fields* sub-fields)))
+  ([res fields]
+     (select-fields (enlv/html-resource res) fields)))
 
-(defn get-subs-follow [res]
+(defn get-subs-follow
   "Loads the hacker news submission list given by the resource
    uri and returns a lazy list representing the parsed data."
- (lazy-seq
-  (let [ns (enlv/html-resource res)
-        more-url (select-more-url ns)
-        next-uri (get-next-page-uri res more-url)]
-    (concat (select-subs ns)
+  ([res]
+     (get-subs-follow res (get-field-specs *default-sub-fields* sub-fields)))
+  ([res fields]
+     (lazy-seq
+      (let [ns (enlv/html-resource res)
+            more-url (select-more-url ns)
+            next-uri (get-next-page-uri res more-url)]
+        (concat (get-subs ns fields)
             (do (Thread/sleep *crawl-delay*)
-                (get-subs-follow next-uri))))))
+                (get-subs-follow next-uri fields)))))))
 
-(defn get-sub-details [res]
+(defn get-sub-details
   ""
-  (-> res enlv/html-resource select-sub-details first))
+  ([res]
+     (get-sub-details res (get-field-specs *default-detail-fields* detail-fields)))
+  ([res fields]
+        (select-fields (enlv/html-resource res) fields)))     
+
+

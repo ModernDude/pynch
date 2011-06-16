@@ -61,8 +61,8 @@ such as [Hacker News](http://news.ycombinator.com) and [Arc Forum](http://arclan
 ### get-subs
 
 Usage: 
-  (get-subs res)
-  (get-subs res fields)
+    (get-subs res)
+    (get-subs res fields)
 
 Returns a sequence of maps for each submission located at or within
 res. The type of res can be any of the following (String,
@@ -77,7 +77,7 @@ specified by *default-sub-fields* will be' used. (get-subs
 
 ### get-subs-crawl
 
-Usage 
+Usage: 
   (get-subs-crawl res)
   (get-subs-crawl res fields)
 
@@ -96,9 +96,10 @@ target proprietor before doing anything serious with this.
 
 ### get-sub-details
 
-Usage
+Usage:
   (get-sub-details res)
-  (Get-sub-details res fields)
+
+  (get-sub-details res fields)
 
 Returns details, including comments, for the submission located at or
 within res. The type of res can be any of the following (String,

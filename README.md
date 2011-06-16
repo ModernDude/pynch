@@ -60,11 +60,64 @@ such as [Hacker News](http://news.ycombinator.com) and [Arc Forum](http://arclan
 
 ### get-subs
 
-Usage: (get-subs res)
+Usage: 
+  (get-subs res)
+  (get-subs res fields)
 
-       (get-subs res fields)
+Returns a sequence of maps for each submission located at or within
+res. The type of res can be any of the following (String,
+java.io.FileInputStream, java.io.Reader, java.io.InputStream,
+java.net.URL, java.net.URI). The param fields is optional and can be
+used to specify a coll of fields that will be selected, extracted and
+returned from function call. Each field must implement the FieldSpec
+protocol. If fields is not supplied, a default list of fields
+specified by *default-sub-fields* will be' used. (get-subs
+(java.net.URI. "http://news.ycombinator.com"))
 
-Returns a sequence of maps for each submission located at or within res. The type of res can be any of the following (String, java.io.FileInputStream, java.io.Reader, java.io.InputStream, java.net.URL, java.net.URI). The param fields is optional and can be used to specify a coll of fields that will be selected, extracted and returned from function call. Each field must implement the FieldSpec protocol. If fields is not supplied, a default list of fields specified by *default-sub-fields* will be' used. (get-subs (java.net.URI. "http://news.ycombinator.com"))
+
+### get-subs-crawl
+
+Usage 
+  (get-subs-crawl res)
+  (get-subs-crawl res fields)
+
+Returns a lazy seqence of maps for each submission located at or
+within res followed by the submissions on the next page and so on. The
+function will return submissions as long as it can find a 'more' page
+to grab. The function will sleep for *crawl-delay* seconds in between
+each request. Just as with the get-subsfunction, an optional fields
+collection can specified to define what data get is returned.
+
+**Warning**
+
+Calling this function will most likely violate the robots.txt file on
+the target web server so I would recommend getting permission from the
+target proprietor before doing anything serious with this.
+
+### get-sub-details
+
+Usage
+  (get-sub-details res)
+  (Get-sub-details res fields)
+
+Returns details, including comments, for the submission located at or
+within res. The type of res can be any of the following (String,
+java.io.FileInputStream, java.io.Reader, java.io.InputStream,
+java.net.URL, java.net.URI). The param fields is optional and can be
+used to specify a coll of fields that will be selected, extracted and
+returned from function call. Each field must implement the FieldSpec
+protocol. If fields is not supplied, a default list of fields
+specified by *default-detail-fields* will be' used.
+
+
+## Available Fields
+
+TODO
+
+
+## Extending
+
+TODO
 
 
 ## Known Issues

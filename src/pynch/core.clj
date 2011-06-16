@@ -10,11 +10,6 @@
 (def *default-detail-fields* [:title :time :points :user :notes :com-url :com-count :comments])
 (def *default-comment-fields* [:user :time :cmnt-url :cmnt-text])
   
-
-(defrecord Submission [title url time points submitter cmnt-url cmnt-cnt])
-(defrecord Comment [commenter time link texts])
-(defrecord SubmissionDetails [submission notes comments])
-
 (defn re-first-seq-digits
  "Uses regex to find the first sequential string of digits in
  the string given by s. If the string can not be found nil will
@@ -47,7 +42,6 @@
    (if-let [found-period (some first-found periods)]
      (tm/minus (now-nearest-minute) ((create-period-fn found-period)  offset))
      (now-nearest-minute))))
-
 
 (declare selectors extractors)
 
@@ -191,6 +185,6 @@ FieldSpec records"
   ([res]
      (get-sub-details res (get-field-specs *default-detail-fields* detail-fields)))
   ([res fields]
-        (select-fields (enlv/html-resource res) fields)))     
+     (select-fields (enlv/html-resource res) fields)))     
 
 

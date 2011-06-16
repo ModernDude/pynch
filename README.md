@@ -1,12 +1,20 @@
 # Pynch
 
-Pynch is a library for parsing submissions from the site [YCombinator
-Hacker News](http://news.ycombinator.com). Pynch may also work for sites
-derivitive site 
+Pynch is a library for parsing submissions from news.arc sites
+such as [Hacker News](http://news.ycombinator.com) and [Arc Forum](http://arclanguage.org/forum).  
 
 ## Usage
 
-FIXME: write
+Get list of submissions on a given page
+
+```clojure
+
+(get-subs (java.net.URI. "http://news.ycombinator.com"))
+
+
+```
+
+
 
 ## License
 

@@ -61,6 +61,7 @@ such as [Hacker News](http://news.ycombinator.com) and [Arc Forum](http://arclan
 ### get-subs
 
 Usage: 
+
     (get-subs res)
     (get-subs res fields)
 

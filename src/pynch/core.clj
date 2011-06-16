@@ -46,6 +46,8 @@
 (declare selectors extractors)
 
 (defprotocol FieldSpecifier
+  "Describes how a field can identify, select and extract
+   iteself from an html document."
   (get-selector [_])
   (extract-field [_ node])
   (get-key [_]))
@@ -157,20 +159,30 @@ FieldSpec records"
   (->> :sub-more-url selectors (enlv/select ns) first ((extractors :url))))
 
 (defn get-subs
-  "Returns a map of all submissions located at or within
-   resource r. The type of x can be any of the following
-   String, java.io.FileInputStream, java.io.Reader,
-   java.io.InputStream, java.net.URL, java.net.URI"
+  "Returns a sequence of maps for each submission located at
+   or within res. The type of res can be any of the following (String,
+   java.io.FileInputStream, java.io.Reader, java.io.InputStream,
+   java.net.URL, java.net.URI). The param fields is optional and
+   can be used to specify a coll of fields that will be selected,
+   extracted and returned from function call. Each field must
+   implement the FieldSpec protocol. If fields is not supplied, a
+   default list of fields specified by *default-sub-fields* will be'
+   used."
   ([res]
      (get-subs res (get-field-specs *default-sub-fields* sub-fields)))
   ([res fields]
      (select-fields (enlv/html-resource res) fields)))
 
-(defn get-subs-follow
-  "Loads the hacker news submission list given by the resource
-   uri and returns a lazy list representing the parsed data."
+(defn get-subs-crawl
+  "Returns a lazy seqence of maps for each submission located
+   at or within res followed by the submissions on the next page
+   and so on. The function will return submissions as long as it can
+   find a 'more' page to grab. The function will sleep for *crawl-delay*
+   seconds in between each request. Just as with the get-subs
+   function, an optional fields collection can specified to define
+   what data get is returned."
   ([res]
-     (get-subs-follow res (get-field-specs *default-sub-fields* sub-fields)))
+     (get-subs-crawl res (get-field-specs *default-sub-fields* sub-fields)))
   ([res fields]
      (lazy-seq
       (let [ns (enlv/html-resource res)
@@ -178,10 +190,18 @@ FieldSpec records"
             next-uri (get-next-page-uri res more-url)]
         (concat (get-subs ns fields)
             (do (Thread/sleep *crawl-delay*)
-                (get-subs-follow next-uri fields)))))))
+                (get-subs-crawl next-uri fields)))))))
 
 (defn get-sub-details
-  ""
+  "Returns details, including comments, for the submission
+   located at or within res. The type of res can be any of the following (String,
+   java.io.FileInputStream, java.io.Reader, java.io.InputStream,
+   java.net.URL, java.net.URI). The param fields is optional and
+   can be used to specify a coll of fields that will be selected,
+   extracted and returned from function call. Each field must
+   implement the FieldSpec protocol. If fields is not supplied, a
+   default list of fields specified by *default-detail-fields* will be'
+   used.  "
   ([res]
      (get-sub-details res (get-field-specs *default-detail-fields* detail-fields)))
   ([res fields]

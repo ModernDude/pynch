@@ -1,6 +1,5 @@
 (ns pynch.test.core
   (:use [pynch.core])
-  (:import [pynch.core Submission Comment SubmissionDetails])
   (:use [clojure.test])
   (:require [clj-time.core :as dt])
   (:use [clojure.java.io :as io]))
@@ -91,10 +90,10 @@
       (is (= sub-14 (nth subs 13)) "Fourteenth Submission")
       (is (= sub-30 (last subs)) "Thirtieth Submission"))))
 
-(deftest test-get-subs-default-follow
+(deftest test-get-subs-default-crawl
   (binding [pynch.core/*crawl-delay* 0
             pynch.core/now-nearest-minute static-now]
-    (let [subs (->> "resources/submissions.html" io/resource get-subs-follow (take 60))]
+    (let [subs (->> "resources/submissions.html" io/resource get-subs-crawl (take 60))]
       (is (= 60 (count subs)) "Count should be 60")
       (is (= sub-1 (first subs)) "First Submission")
       (is (= sub-31 (nth subs 30))"Thirty-First Submission")

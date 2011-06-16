@@ -81,6 +81,7 @@ specified by *default-sub-fields* will be' used. (get-subs
 ### get-subs-crawl
 
 Usage: 
+
 ```clojure  
 (get-subs-crawl res)
 (get-subs-crawl res fields)
@@ -102,6 +103,7 @@ target proprietor before doing anything serious with this.
 ### get-sub-details
 
 Usage:
+
 ```clojure
 (get-sub-details res)
 (get-sub-details res fields)

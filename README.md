@@ -47,11 +47,12 @@ such as [Hacker News](http://news.ycombinator.com) and [Arc Forum](http://arclan
 
 7. Build
 
-   C-c k
+    C-c k
 
 8. At REPL
 
     user> (ns pynchtest.core)
+
     pynchtest.core> (get-first-hn-sub)
 
 
@@ -60,6 +61,7 @@ such as [Hacker News](http://news.ycombinator.com) and [Arc Forum](http://arclan
 ### get-subs
 
 Usage: (get-subs res)
+
        (get-subs res fields)
 
 Returns a sequence of maps for each submission located at or within res. The type of res can be any of the following (String, java.io.FileInputStream, java.io.Reader, java.io.InputStream, java.net.URL, java.net.URI). The param fields is optional and can be used to specify a coll of fields that will be selected, extracted and returned from function call. Each field must implement the FieldSpec protocol. If fields is not supplied, a default list of fields specified by *default-sub-fields* will be' used. (get-subs (java.net.URI. "http://news.ycombinator.com"))

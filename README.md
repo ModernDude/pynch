@@ -62,8 +62,10 @@ such as [Hacker News](http://news.ycombinator.com) and [Arc Forum](http://arclan
 
 Usage: 
 
-    (get-subs res)
-    (get-subs res fields)
+```clojure
+(get-subs res)
+(get-subs res fields)
+```
 
 Returns a sequence of maps for each submission located at or within
 res. The type of res can be any of the following (String,
@@ -79,8 +81,10 @@ specified by *default-sub-fields* will be' used. (get-subs
 ### get-subs-crawl
 
 Usage: 
-  (get-subs-crawl res)
-  (get-subs-crawl res fields)
+```clojure  
+(get-subs-crawl res)
+(get-subs-crawl res fields)
+```
 
 Returns a lazy seqence of maps for each submission located at or
 within res followed by the submissions on the next page and so on. The
@@ -98,9 +102,10 @@ target proprietor before doing anything serious with this.
 ### get-sub-details
 
 Usage:
-  (get-sub-details res)
-
-  (get-sub-details res fields)
+```clojure
+(get-sub-details res)
+(get-sub-details res fields)
+```
 
 Returns details, including comments, for the submission located at or
 within res. The type of res can be any of the following (String,

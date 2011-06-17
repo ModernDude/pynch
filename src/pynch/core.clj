@@ -58,7 +58,7 @@
   (extract-field [_ node] ((extractors extractor-key) node))
   (get-key [_] key))
 
-(defn- get-field-specs [keyseq coll]
+(defn get-field-specs [keyseq coll]
   "Take a seq of of field keys and return a collection of the matching
 FieldSpec records"
   (letfn [(keys-match? [key field] (= (get-key field) key))

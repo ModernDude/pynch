@@ -72,9 +72,9 @@ res. The type of res can be any of the following (String,
 java.io.FileInputStream, java.io.Reader, java.io.InputStream,
 java.net.URL, java.net.URI). The param fields is optional and can be
 used to specify a coll of fields that will be selected, extracted and
-returned from function call. Each field must implement the FieldSpec
+returned from the function call. Each field must implement the FieldSpec
 protocol. If fields is not supplied, a default list of fields
-specified by *default-sub-fields* will be' used. (get-subs
+specified by \*default-sub-fields\* will be' used. (get-subs
 (java.net.URI. "http://news.ycombinator.com"))
 
 
@@ -87,11 +87,11 @@ Usage:
 (get-subs-crawl res fields)
 ```
 
-Returns a lazy seqence of maps for each submission located at or
+Returns a lazy sequence of maps for each submission located at or
 within res followed by the submissions on the next page and so on. The
 function will return submissions as long as it can find a 'more' page
-to grab. The function will sleep for *crawl-delay* seconds in between
-each request. Just as with the get-subsfunction, an optional fields
+to grab. The function will sleep for \*crawl-delay\* seconds in between
+each request. Just as with the get-subs function, an optional fields
 collection can specified to define what data get is returned.
 
 **Warning**
@@ -116,17 +116,106 @@ java.net.URL, java.net.URI). The param fields is optional and can be
 used to specify a coll of fields that will be selected, extracted and
 returned from function call. Each field must implement the FieldSpec
 protocol. If fields is not supplied, a default list of fields
-specified by *default-detail-fields* will be' used.
+specified by \*default-detail-fields\* will be' used.
 
 
 ## Available Fields
 
-TODO
+The following table describes the fields that come baked into
+pynch. The fields bound to the symbol **sub-fields** should be used
+with the **get-subs\*** functions. All other fields should be used
+with the **get-sub-details** function.
 
+<table>
+<tr><td>Binding</td><td>Key</td><td>Type</td><td>Default</td></tr>
+<tr><td>sub-fields</td><td>:ordinal</td><td>int</td><td>false</td></tr>
+<tr><td>sub-fields</td><td>:points</td><td>int</td><td>true</td></tr>
+<tr><td>sub-fields</td><td>:sub-time</td><td>Date</td><td>true</td></tr>
+<tr><td>sub-fields</td><td>:sub-url</td><td>string</td><td>true</td></tr>
+<tr><td>sub-fields</td><td>:user</td><td>string</td><td>true</td></tr>
+<tr><td>sub-fields</td><td>:com-url</td><td>string</td><td>true</td></tr>
+<tr><td>sub-fields</td><td>:com-count</td><td>int</td><td>true</td></tr>
+<tr><td>detail-fields</td><td>:title</td><td>string</td><td>true</td></tr>
+<tr><td>detail-fields</td><td>:time</td><td>Date</td><td>true</td></tr>
+<tr><td>detail-fields</td><td>:points</td><td>int</td><td>true</td></tr>
+<tr><td>detail-fields</td><td>:notes</td><td>string</td><td>true</td></tr>
+<tr><td>detail-fields</td><td>:com-url</td><td>string</td><td>true</td></tr>
+<tr><td>detail-fields</td><td>:com-count</td><td>int</td><td>true</td></tr>
+<tr><td>detail-fields</td><td>:comments</td><td>List of
+comment-fields</td><td>true</td></tr>
+<tr><td>comment-fields</td><td>:user</td><td>string</td><td>true</td></tr>
+<tr><td>comment-fields</td><td>:time</td><td>date</td><td>true</td></tr>
+<tr><td>comment-fields</td><td>:cmnt-url</td><td>string</td><td>true</td></tr>
+<tr><td>comment-fields</td><td>:cmnt-text</td><td>List of
+strings</td><td>true</td></tr>
+<tr><td>comment-fields</td><td>:cmnt-nodes</td><td>List of html nodes</td><td>false</td></tr>
+</table>
+
+If no fields are specified in a function call, the default fields
+will be returned as defined above. 
+
+There are currently two ways to change the fields that are returned
+from a function. 
+
+1. Rebind the default fields before calling a function.
+
+You can do this by rebinding any of the following symbols:
+
+* \*default-sub-fields\*
+* \*default-detail-fields\*
+* \*default-comment-fields\*
+
+Each symbol is bound to the appropriate list of keys from the table
+above. As an example, If I only wanted the points from submissions
+returned, I could do the following:
+
+```clojure
+
+(binding [py/*default-sub-fields* [:points]]
+   (py/get-subs (java.net.URI. "http://news.ycombinator.com")))
+
+```
+
+If you want to change the default comment fields returned on the
+**get-sub-details** call, this is the easiest method because the
+function only accepts detail fields and not comment fields.
+
+2. Pass in a list of fields that you want to select
+
+```clojure
+
+(py/get-subs (java.net.URI. "http://news.ycombinator.com"))
+(py/get-field-specs [:points] py/sub-fields)
+
+```
 
 ## Extending
 
-TODO
+You can add in your own field definitions to be returned if you
+desire. You can even use this library to parse sequences over non
+news.arc sites although I'm not sure if anyone would find much use in
+that (see the *select-fields* function). Regardless, if you want to
+add-in a field or two you simply need to pass in an object into the
+fields collection that implements the following protocol:
+
+```clojure
+
+(defprotocol FieldSpecifier
+  "Describes how a field can identify, select and extract
+   iteself from an html document."
+  (get-selector [_])
+  (extract-field [_ node])
+  (get-key [_]))
+
+
+```
+
+* get-selector must return a css selector as specified in the Enlive
+  project https://github.com/cgrand/enlive
+* extract-field must extract the desired value from the selected dom
+  node
+* get-key is how the field will identify itself in the returned map.
+
 
 
 ## Known Issues
@@ -136,7 +225,7 @@ reference https://github.com/technomancy/swank-clojure/issues/32
 
 2. If a submissions list source html is missing user, time, or comment
 count the output will not be correct. This is because each field
-selecter is run independently and merged together. The solution assumes that 
+selector is run independently and merged together. The solution assumes that 
 each submission provides each piece of information. There are rare
 times when some information is not provided, in these cases the other
 fields will be mismatched.

@@ -169,12 +169,12 @@ from a function.
     above. As an example, If I only wanted the points from submissions
     returned, I could do the following:
 
-```clojure
+    ```clojure
 
-(binding [py/*default-sub-fields* [:points]]
-   (py/get-subs (java.net.URI. "http://news.ycombinator.com")))
+    (binding [py/*default-sub-fields* [:points]]
+         (py/get-subs (java.net.URI. "http://news.ycombinator.com")))
 
-```
+    ```
 
     If you want to change the default comment fields returned on the
     **get-sub-details** call, this is the easiest method because the
@@ -182,12 +182,11 @@ from a function.
 
 2. Pass in a list of fields that you want to select
 
-```clojure
+    ```clojure
 
-(py/get-subs (java.net.URI. "http://news.ycombinator.com")
-(py/get-field-specs [:points] py/sub-fields))
-
-```
+    (py/get-subs (java.net.URI. "http://news.ycombinator.com")
+             (py/get-field-specs [:points] py/sub-fields))
+    ```
 
 ## Extending
 

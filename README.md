@@ -159,15 +159,15 @@ from a function.
 
 1. Rebind the default fields before calling a function.
 
-You can do this by rebinding any of the following symbols:
+    You can do this by rebinding any of the following symbols:
 
-* \*default-sub-fields\*
-* \*default-detail-fields\*
-* \*default-comment-fields\*
+    * \*default-sub-fields\*
+    * \*default-detail-fields\*
+    * \*default-comment-fields\*
 
-Each symbol is bound to the appropriate list of keys from the table
-above. As an example, If I only wanted the points from submissions
-returned, I could do the following:
+    Each symbol is bound to the appropriate list of keys from the table
+    above. As an example, If I only wanted the points from submissions
+    returned, I could do the following:
 
 ```clojure
 
@@ -176,16 +176,16 @@ returned, I could do the following:
 
 ```
 
-If you want to change the default comment fields returned on the
-**get-sub-details** call, this is the easiest method because the
-function only accepts detail fields and not comment fields.
+    If you want to change the default comment fields returned on the
+    **get-sub-details** call, this is the easiest method because the
+    function only accepts detail fields and not comment fields.
 
 2. Pass in a list of fields that you want to select
 
 ```clojure
 
-(py/get-subs (java.net.URI. "http://news.ycombinator.com"))
-(py/get-field-specs [:points] py/sub-fields)
+(py/get-subs (java.net.URI. "http://news.ycombinator.com")
+(py/get-field-specs [:points] py/sub-fields))
 
 ```
 
@@ -210,11 +210,11 @@ fields collection that implements the following protocol:
 
 ```
 
-* get-selector must return a css selector as specified in the Enlive
+* *get-selector* must return a css selector as specified in the Enlive
   project https://github.com/cgrand/enlive
-* extract-field must extract the desired value from the selected dom
+* *extract-field* must extract the desired value from the selected dom
   node
-* get-key is how the field will identify itself in the returned map.
+* *get-key* is how the field will identify itself in the returned map.
 
 
 

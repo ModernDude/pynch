@@ -1,5 +1,7 @@
 # Pynch
 
+**This library needs to be upgraded to the latest version of clojure.**
+
 Pynch is a library for parsing submissions from news.arc sites
 such as [Hacker News](http://news.ycombinator.com) and [Arc Forum](http://arclanguage.org/forum).  
 
